@@ -1,15 +1,15 @@
+
+# def instalar_requisitos():
+#     try:
+#          subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+#          print("Requisitos instalados com sucesso.")
+#     except Exception as e:
+#          print(f"Erro ao instalar requisitos: {e}")
+
+# instalar_requisitos()
+
 import subprocess
 import sys
-
-def instalar_requisitos():
-    try:
-         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-         print("Requisitos instalados com sucesso.")
-    except Exception as e:
-         print(f"Erro ao instalar requisitos: {e}")
-
-instalar_requisitos()
-
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -22,35 +22,91 @@ from dotenv import load_dotenv
 import os
 # from selenium.webdriver.support.select import Select
 from pathlib import Path
-
-import os
 from dotenv import load_dotenv
 from pathlib import Path
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 
-def pedir_credenciais_e_salvar():
+import os
+import subprocess
+
+import os
+import sys
+import subprocess
+
+def agendar_tarefa():
+    nome_tarefa = "WiseOfficeAuto"
+    caminho_exe = os.path.abspath(sys.argv[0])
+
+    comando = f'''
+    schtasks /Create /F /SC WEEKLY /D MON,TUE,FRI /TN "{nome_tarefa}" /TR "{caminho_exe}" /ST 11:00 /RL HIGHEST
+    '''
+
+    try:
+        subprocess.run(comando, shell=True, check=True)
+        print("✅ Tarefa agendada com sucesso para segunda, terça e sexta às 11:00.")
+    except Exception as e:
+        print(f"❌ Falha ao agendar tarefa: {e}")
+
+if not os.path.exists("tarefa_agendada.flag"):
+    agendar_tarefa()
+    with open("tarefa_agendada.flag", "w") as f:
+        f.write("agendado")
+
+
+if not os.path.exists("tarefa_agendada.flag"):
+    agendar_tarefa()
+    with open("tarefa_agendada.flag", "w") as f:
+        f.write("agendado")
+
+
+def pedir_credenciais_custom():
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(__file__)
+    ico_path = os.path.join(base_path, "favicon.ico")
+
     root = tk.Tk()
     root.withdraw()
 
-    email = simpledialog.askstring("Login", "Digite seu e-mail do Wise Offices:")
-    senha = simpledialog.askstring("Login", "Digite sua senha do Wise Offices:", show='*')
+    login_win = tk.Toplevel()
+    login_win.title("Login WiseBot")
+    login_win.iconbitmap(ico_path)
+    login_win.geometry("300x150")
+    login_win.resizable(False, False)
 
-    if not email or not senha:
-        messagebox.showerror("Erro", "E-mail e senha são obrigatórios.")
-        exit()
+    tk.Label(login_win, text="Email:").pack(pady=5)
+    email_entry = tk.Entry(login_win, width=30)
+    email_entry.pack()
 
-    with open(".env", "w") as f:
-        f.write(f"WISE_EMAIL={email}\nWISE_SENHA={senha}")
+    tk.Label(login_win, text="Senha:").pack(pady=5)
+    senha_entry = tk.Entry(login_win, width=30, show='*')
+    senha_entry.pack()
 
-    messagebox.showinfo("Sucesso", "Credenciais salvas com sucesso!")
+    def salvar_e_sair():
+        email = email_entry.get()
+        senha = senha_entry.get()
+        if not email or not senha:
+            messagebox.showerror("Erro", "Preencha ambos os campos.", parent=login_win)
+            return
+        with open(".env", "w") as f:
+            f.write(f"WISE_EMAIL={email}\nWISE_SENHA={senha}")
+        messagebox.showinfo("Sucesso", "Credenciais salvas!", parent=login_win)
+        login_win.destroy()
+        root.destroy()
+
+    tk.Button(login_win, text="Entrar", command=salvar_e_sair).pack(pady=10)
+
+    login_win.mainloop()
+
 
 
 env_path = Path(".env")
 load_dotenv()
 
 if not env_path.exists() or not os.getenv("WISE_EMAIL") or not os.getenv("WISE_SENHA"):
-    pedir_credenciais_e_salvar()
+    pedir_credenciais_custom()
 
 
 load_dotenv()
