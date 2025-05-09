@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkcalendar import Calendar
 import os
 from datetime import datetime
 
@@ -123,28 +124,12 @@ def carregar_cookies():
         print("❌ Arquivo cookies.json não encontrado. Faça login primeiro.")
         return None
 
-def enviar_reserva(cadeira_id, data_inicio, horario_inicio, data_fim, horario_fim):
+def enviar_reservas(cadeira_id, datas, horario_inicio, horario_fim):
     url = f"https://app.wiseoffices.com.br/api/v1/u/reservas/imoveis/3153/recursos/{cadeira_id}"
-    
-    # Montando o payload
-    payload = {
-        "idsUsuariosConvidados": [37859],
-        "visitantes": [],
-        "dataInicio": f"{data_inicio} {horario_inicio}",
-        "dataFim": f"{data_fim} {horario_fim}",
-        "descricao": None,
-        "idUsuarioRepresentado": None,
-        "tituloReuniao": None,
-        "agora": False
-    }
-
-    # Carregando os cookies
     cookies = carregar_cookies()
     if not cookies:
-        print("❌ Não foi possível carregar os cookies.")
         return
     
-    # Headers para a request
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",
@@ -153,19 +138,34 @@ def enviar_reserva(cadeira_id, data_inicio, horario_inicio, data_fim, horario_fi
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
     }
 
-    # Enviando a request
-    response = requests.post(url, json=payload, headers=headers, cookies=cookies)
+    erros = []
+    for data in datas:
+        payload = {
+            "idsUsuariosConvidados": [37859],
+            "visitantes": [],
+            "dataInicio": f"{data} {horario_inicio}",
+            "dataFim": f"{data} {horario_fim}",
+            "descricao": None,
+            "idUsuarioRepresentado": None,
+            "tituloReuniao": None,
+            "agora": False
+        }
 
-    if response.status_code == 201:
-        print("✅ Reserva criada com sucesso!")
-        messagebox.showinfo("Reserva Confirmada", "Reserva criada com sucesso!")
+        response = requests.post(url, json=payload, headers=headers, cookies=cookies)
+
+        if response.status_code == 201:
+            print(f"✅ Reserva criada com sucesso para {data}!")
+        else:
+            print(f"❌ Falha ao criar reserva para {data}: {response.status_code}")
+            print(response.text)
+            erros.append(data)
+
+    if erros:
+        messagebox.showerror("Erro", f"Falha ao criar reservas para as datas: {', '.join(erros)}")
     else:
-        print(f"❌ Falha ao criar reserva: {response.status_code}")
-        print(response.text)
-        messagebox.showerror("Erro", f"Falha ao criar reserva: {response.status_code}")
+        messagebox.showinfo("Reserva Confirmada", "Todas as reservas foram criadas com sucesso!")
 
 def abrir_interface():
-    # Mapeamento de nomes amigáveis para IDs
     CADEIRAS_IDS = {
         "Cabine 2": "7638",
         "Sala de entrevista": "7623",
@@ -174,36 +174,39 @@ def abrir_interface():
         "Cabine 1": "7637"
     }
 
-    def on_confirmar():
-        try:
-            # Corrigindo o formato de data e hora
-            data_inicio = datetime.strptime(data_inicio_var.get(), "%d/%m/%Y").strftime("%Y-%m-%d")
-            horario_inicio = datetime.strptime(horario_inicio_var.get(), "%H:%M").strftime("%H:%M")
-            horario_fim = datetime.strptime(horario_fim_var.get(), "%H:%M").strftime("%H:%M")
-        except ValueError:
-            messagebox.showerror("Erro", "Formato de data ou hora inválido.")
-            return
+    datas_selecionadas = set()
 
-        cadeira_nome = cadeira_var.get()
-        cadeira_id = CADEIRAS_IDS[cadeira_nome]
-        
-        enviar_reserva(cadeira_id, data_inicio, horario_inicio, data_inicio, horario_fim)
+    def abrir_calendario():
+        calendario_win = tk.Toplevel(root)
+        calendario_win.title("Selecionar Datas")
+        calendario_win.geometry("400x400")
 
-    # Configurações da janela principal
+        cal = Calendar(calendario_win, selectmode="day", date_pattern="yyyy-mm-dd", locale="pt_BR")
+        cal.pack(pady=20)
+
+        def adicionar_data():
+            data = cal.get_date()
+            if data not in datas_selecionadas:
+                datas_selecionadas.add(data)
+                datas_listbox.insert(tk.END, data)
+
+        btn_adicionar_data = tk.Button(calendario_win, text="Adicionar Data", command=adicionar_data)
+        btn_adicionar_data.pack(pady=20)
+
     root = tk.Tk()
     root.title("Reserva Wise Offices")
-    root.geometry("350x350")
+    root.geometry("400x500")
     root.resizable(False, False)
 
-    # Campos do Tkinter
     tk.Label(root, text="Cadeira:").pack(pady=5)
     cadeira_var = tk.StringVar(value=list(CADEIRAS_IDS.keys())[0])
     cadeira_menu = ttk.Combobox(root, textvariable=cadeira_var, values=list(CADEIRAS_IDS.keys()), state="readonly", width=30)
     cadeira_menu.pack()
 
-    tk.Label(root, text="Data de Início (DD/MM/AAAA):").pack(pady=5)
-    data_inicio_var = tk.Entry(root, width=30)
-    data_inicio_var.pack()
+    tk.Button(root, text="Selecionar Datas", command=abrir_calendario).pack(pady=10)
+
+    datas_listbox = tk.Listbox(root, width=30, height=10)
+    datas_listbox.pack(pady=10)
 
     tk.Label(root, text="Horário de Início (HH:MM):").pack(pady=5)
     horario_inicio_var = tk.Entry(root, width=30)
@@ -213,10 +216,9 @@ def abrir_interface():
     horario_fim_var = tk.Entry(root, width=30)
     horario_fim_var.pack()
 
-    tk.Button(root, text="Confirmar Reserva", command=on_confirmar).pack(pady=20)
+    tk.Button(root, text="Confirmar Reserva", command=lambda: enviar_reservas(CADEIRAS_IDS[cadeira_var.get()], datas_selecionadas, horario_inicio_var.get(), horario_fim_var.get())).pack(pady=20)
 
     root.mainloop()
-
 
 def main():
     try:
