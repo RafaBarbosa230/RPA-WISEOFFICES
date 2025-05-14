@@ -331,7 +331,7 @@ def abrir_interface():
     logo_label.pack(side=tk.LEFT, padx=5)
 
     # Cadeira
-    tk.Label(root, text="Cadeira:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=5)
+    tk.Label(root, text="Cadeira/Sala:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=5)
     cadeira_var = tk.StringVar(value=list(CADEIRAS_IDS.keys())[0])
     cadeira_menu = ttk.Combobox(root, textvariable=cadeira_var, values=list(CADEIRAS_IDS.keys()), state="readonly", width=28)
     cadeira_menu.pack(pady=5)
