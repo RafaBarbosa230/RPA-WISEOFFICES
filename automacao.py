@@ -155,6 +155,32 @@ def carregar_cookies():
         print("❌ Arquivo cookies.json não encontrado. Faça login primeiro.")
         return None
 
+def obter_id_usuario(cookies):
+    url = "https://app.wiseoffices.com.br/api/v1/me"
+    headers = {
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        "sec-ch-ua": '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, cookies=cookies, timeout=10)
+        response.raise_for_status()
+        
+        # Retorna diretamente o ID do usuário
+        return response.json().get("id")
+        
+    except requests.RequestException as e:
+        print(f"❌ Erro ao obter ID do usuário: {e}")
+        return None
+
 
 def enviar_reserva(cadeira_id, data, horario_inicio, horario_fim, cookies):
     url = f"https://app.wiseoffices.com.br/api/v1/u/reservas/imoveis/3153/recursos/{cadeira_id}"
@@ -168,7 +194,7 @@ def enviar_reserva(cadeira_id, data, horario_inicio, horario_fim, cookies):
     }
 
     payload = {
-        "idsUsuariosConvidados": [37859],
+        "idsUsuariosConvidados": [obter_id_usuario(cookies)],
         "visitantes": [],
         "dataInicio": f"{data} {horario_inicio}",
         "dataFim": f"{data} {horario_fim}",
