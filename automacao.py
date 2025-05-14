@@ -160,8 +160,8 @@ def enviar_reserva(cadeira_id, data, horario_inicio, horario_fim):
     url = f"https://app.wiseoffices.com.br/api/v1/u/reservas/imoveis/3153/recursos/{cadeira_id}"
     cookies = carregar_cookies()
     if not cookies:
-        return
-    
+        return False  # Falha ao carregar cookies
+
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",
@@ -185,10 +185,11 @@ def enviar_reserva(cadeira_id, data, horario_inicio, horario_fim):
 
     if response.status_code == 201:
         print(f"✅ Reserva criada com sucesso para {data}!")
+        return True
     else:
         print(f"❌ Falha ao criar reserva para {data}: {response.status_code}")
         print(response.text)
-        messagebox.showerror("Erro", f"Falha ao criar reserva para {data}: {response.status_code}")
+        return False
 
 
 
@@ -422,30 +423,26 @@ def confirmar_reserva():
         messagebox.showerror("Erro", "Preencha todos os campos corretamente.")
         return
 
-    # Mensagem de sucesso (sempre aparece primeiro)
-    messagebox.showinfo("Sucesso", "Reservas concluídas! ✅")
-
     # Lista para armazenar datas que falharam
     datas_falhadas = []
 
     # Envia uma requisição para cada data
     for data in datas:
-        try:
-            enviar_reserva(cadeira_id, data, horario_inicio, horario_fim)
-        except Exception as e:
+        if not enviar_reserva(cadeira_id, data, horario_inicio, horario_fim):
             datas_falhadas.append(data)
 
-    # Exibe todas as datas que falharam em UMA ÚNICA mensagem
-    if datas_falhadas:
-        # Formata as datas para o padrão brasileiro
-        datas_formatadas = [datetime.strptime(data, "%Y-%m-%d").strftime("%d/%m/%Y") for data in datas_falhadas]
-        
-        # Cria a mensagem com todas as datas separadas por vírgula
-        mensagem_erro = ", ".join(datas_formatadas)
-        
-        # Exibe a mensagem final com todas as datas
-        messagebox.showerror("Erro", f"Reservas falharam nas datas:\n{mensagem_erro}")
+    # Mensagem de sucesso (sempre aparece primeiro)
+    messagebox.showinfo("Sucesso", "Reservas concluídas! ✅")
 
+    # Exibe as datas que falharam, se houver alguma
+    if datas_falhadas:
+        messagebox.showerror(
+            "Erro nas Reservas",
+            f"Não foi possível criar reservas para as seguintes datas:\n{', '.join(datas_falhadas)}"
+        )
+
+
+    
 
 
 
