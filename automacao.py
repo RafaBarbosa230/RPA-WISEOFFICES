@@ -15,9 +15,11 @@ from tkinter import ttk, messagebox
 from tkcalendar import Calendar
 import os
 from datetime import datetime, timedelta
+from PIL import Image, ImageTk
+from datetime import datetime
 
 
-# Função para pedir credenciais e criar o arquivo .env se necessário
+
 def pedir_credenciais_custom():
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS
@@ -28,44 +30,66 @@ def pedir_credenciais_custom():
     root = tk.Tk()
     root.withdraw()
 
+    
     login_win = tk.Toplevel()
     login_win.title("Login WiseBot")
     login_win.iconbitmap(ico_path)
-    login_win.geometry("300x150")
+    login_win.geometry("350x220")
+    login_win.configure(bg="#F4F4F9")
     login_win.resizable(False, False)
 
-    tk.Label(login_win, text="Email:").pack(pady=5)
-    email_entry = tk.Entry(login_win, width=30)
-    email_entry.pack()
+    entry_style = {"font": ("Segoe UI", 11), "relief": tk.FLAT, "bg": "#FFFFFF", "fg": "#1D3557", "bd": 1}
 
-    tk.Label(login_win, text="Senha:").pack(pady=5)
-    senha_entry = tk.Entry(login_win, width=30, show='*')
-    senha_entry.pack()
+    
+    tk.Label(login_win, text="Email:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 12, "bold")).pack(pady=(20, 5))
+    email_entry = tk.Entry(login_win, width=30, **entry_style)
+    email_entry.pack(pady=5, padx=20)
 
-    def salvar_e_sair():
-        email = email_entry.get()
-        senha = senha_entry.get()
-        if not email or not senha:
-            messagebox.showerror("Erro", "Preencha ambos os campos.", parent=login_win)
-            return
-        with open(".env", "w") as f:
-            f.write(f"WISE_EMAIL={email}\nWISE_SENHA={senha}")
-        messagebox.showinfo("Sucesso", "Credenciais salvas!", parent=login_win)
-        login_win.destroy()
-        root.destroy()
+    tk.Label(login_win, text="Senha:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 12, "bold")).pack(pady=5)
+    senha_entry = tk.Entry(login_win, width=30, show="*", **entry_style)
+    senha_entry.pack(pady=5, padx=20)
 
-    tk.Button(login_win, text="Entrar", command=salvar_e_sair).pack(pady=10)
+    
+    btn_entrar = tk.Button(
+        login_win, 
+        text="Entrar", 
+        command=lambda: salvar_e_sair(email_entry, senha_entry, login_win, root),
+        bg="#0077B6",
+        fg="#FFFFFF",
+        activebackground="#005792",
+        activeforeground="#FFFFFF",
+        font=("Segoe UI", 11, "bold"),
+        relief=tk.FLAT,
+        bd=0,
+        padx=20,
+        pady=10,
+        width=20
+    )
+    btn_entrar.pack(pady=(15, 20))
 
     login_win.mainloop()
 
 
-# Verificar se o .env existe, caso contrário pedir credenciais
+def salvar_e_sair(email_entry, senha_entry, login_win, root):
+    email = email_entry.get()
+    senha = senha_entry.get()
+    if not email or not senha:
+        messagebox.showerror("Erro", "Preencha ambos os campos.", parent=login_win)
+        return
+    with open(".env", "w") as f:
+        f.write(f"WISE_EMAIL={email}\nWISE_SENHA={senha}")
+    messagebox.showinfo("Sucesso", "Credenciais salvas!", parent=login_win)
+    login_win.destroy()
+    root.destroy()
+
+
+
+
 env_path = Path(".env")
 if not env_path.exists() or not os.getenv("WISE_EMAIL") or not os.getenv("WISE_SENHA"):
     pedir_credenciais_custom()
 
 
-# Carregar as credenciais do .env
 load_dotenv()
 email = os.getenv("WISE_EMAIL")
 senha = os.getenv("WISE_SENHA")
@@ -102,7 +126,6 @@ def fazer_login():
         )
         print('✅ Logado com sucesso')
 
-        # Captura dos cookies após o login bem-sucedido
         cookies = navegador.get_cookies()
         with open("cookies.json", "w") as f:
             json.dump(cookies, f)
@@ -114,7 +137,6 @@ def fazer_login():
         sys.exit(1)
 
 
-# IDs das cadeiras disponíveis
 CADEIRAS_IDS = {
     "Cabine 2": "7638",
     "Sala de entrevista": "7623",
@@ -171,14 +193,46 @@ def enviar_reserva(cadeira_id, data, horario_inicio, horario_fim):
 
 
 def selecionar_data(entry):
-    calendario_win = tk.Toplevel()
-    calendario_win.title("Selecionar Data")
-    calendario_win.geometry("300x300")
+     calendario_win = tk.Toplevel()
+     calendario_win.title("Selecionar Data")
+     calendario_win.geometry("320x350")
+     calendario_win.configure(bg="#F4F4F9")
 
-    cal = Calendar(calendario_win, selectmode="day", date_pattern="yyyy-mm-dd", locale="pt_BR")
-    cal.pack(pady=20)
+     cal = Calendar(
+        calendario_win, 
+        selectmode="day", 
+        date_pattern="yyyy-mm-dd", 
+        locale="pt_BR", 
+        background="#F4F4F9", 
+        foreground="#0077B6", 
+        headersbackground="#A8DADC",
+        headersforeground="#1D3557",
+        normalbackground="#FFFFFF",
+        normalforeground="#1D3557",
+        weekendbackground="#F4F4F9",
+        weekendforeground="#1D3557",
+        selectbackground="#0077B6",
+        selectforeground="#FFFFFF"
+    )
+     cal.pack(pady=20)
 
-    tk.Button(calendario_win, text="Confirmar", command=lambda: (entry.delete(0, tk.END), entry.insert(0, cal.get_date()), calendario_win.destroy())).pack(pady=10)
+     btn_confirmar = tk.Button(
+        calendario_win, 
+        text="Confirmar", 
+        command=lambda: (entry.delete(0, tk.END), entry.insert(0, cal.get_date()), calendario_win.destroy()),
+        bg="#0077B6",
+        fg="#FFFFFF",
+        activebackground="#005792",
+        activeforeground="#FFFFFF",
+        font=("Segoe UI", 12, "bold"),
+        relief=tk.FLAT,
+        bd=0,
+        padx=10,
+        pady=5
+    )
+     btn_confirmar.pack(pady=10)
+
+     calendario_win.mainloop()
 
 
 def filtrar_datas(data_inicio, data_fim, dias_selecionados):
@@ -204,60 +258,154 @@ def filtrar_datas(data_inicio, data_fim, dias_selecionados):
 def abrir_interface():
     global root, cadeira_var, data_inicio_var, data_termino_var, dias_var, horario_inicio_var, horario_fim_var
 
-    # Criação da interface principal
+       # Criação da interface principal
     root = tk.Tk()
     root.title("WiseBot")
-    root.geometry("450x700")
+    root.configure(bg="#F4F4F9")
     root.resizable(False, False)
 
+    # Centralização da janela
+    window_width = 450
+    window_height = 650
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    x = int((screen_width - window_width) / 2)
+    y = int((screen_height - window_height) / 2) - 50
+    root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+    # Carregar a logo e redimensionar
+    logo_path = "logo.png"
+    logo_img = Image.open(logo_path)
+    logo_img = logo_img.resize((40, 40), Image.LANCZOS)
+    logo_tk = ImageTk.PhotoImage(logo_img)
+
+    # Frame para o título com logo centralizado
+    titulo_frame = tk.Frame(root, bg="#0077B6")
+    titulo_frame.pack(fill=tk.X, pady=(10, 20))
+
+    # Conteúdo centralizado
+    titulo_container = tk.Frame(titulo_frame, bg="#0077B6")
+    titulo_container.pack(anchor=tk.CENTER)
+
+    # Texto do título
+    titulo_label = tk.Label(
+        titulo_container, 
+        text="WiseBot", 
+        bg="#0077B6", 
+        fg="#FFFFFF", 
+        font=("Segoe UI", 18, "bold")
+    )
+    titulo_label.pack(side=tk.LEFT, padx=5)
+
+    # Logo
+    logo_label = tk.Label(titulo_container, image=logo_tk, bg="#0077B6")
+    logo_label.image = logo_tk  # Para evitar que o garbage collector remova a imagem
+    logo_label.pack(side=tk.LEFT, padx=5)
+
     # Cadeira
-    tk.Label(root, text="Cadeira:").pack(pady=5)
+    tk.Label(root, text="Cadeira:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=5)
     cadeira_var = tk.StringVar(value=list(CADEIRAS_IDS.keys())[0])
-    cadeira_menu = ttk.Combobox(root, textvariable=cadeira_var, values=list(CADEIRAS_IDS.keys()), state="readonly", width=30)
-    cadeira_menu.pack()
+    cadeira_menu = ttk.Combobox(root, textvariable=cadeira_var, values=list(CADEIRAS_IDS.keys()), state="readonly", width=28)
+    cadeira_menu.pack(pady=5)
 
     # Data de Início
-    tk.Label(root, text="Data de Início:").pack(pady=5)
-    data_inicio_var = tk.Entry(root, width=30)
+    tk.Label(root, text="Data de Início:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=5)
+    data_inicio_var = tk.Entry(root, width=28, font=("Segoe UI", 10))
     data_inicio_var.pack(pady=5)
-    tk.Button(root, text="Selecionar Data de Início", command=lambda: selecionar_data(data_inicio_var)).pack(pady=5)
+    tk.Button(
+        root, 
+        text="Selecionar Data de Início", 
+        command=lambda: selecionar_data(data_inicio_var),
+        bg="#0077B6",
+        fg="#FFFFFF",
+        activebackground="#005792",
+        activeforeground="#FFFFFF",
+        font=("Segoe UI", 10, "bold"),
+        relief=tk.FLAT,
+        bd=0,
+        padx=8,
+        pady=5,
+        width=24
+    ).pack(pady=5)
 
     # Data de Término
-    tk.Label(root, text="Data de Término:").pack(pady=5)
-    data_termino_var = tk.Entry(root, width=30)
+    tk.Label(root, text="Data de Término:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=5)
+    data_termino_var = tk.Entry(root, width=28, font=("Segoe UI", 10))
     data_termino_var.pack(pady=5)
-    tk.Button(root, text="Selecionar Data de Término", command=lambda: selecionar_data(data_termino_var)).pack(pady=5)
+    tk.Button(
+        root, 
+        text="Selecionar Data de Término", 
+        command=lambda: selecionar_data(data_termino_var),
+        bg="#0077B6",
+        fg="#FFFFFF",
+        activebackground="#005792",
+        activeforeground="#FFFFFF",
+        font=("Segoe UI", 10, "bold"),
+        relief=tk.FLAT,
+        bd=0,
+        padx=8,
+        pady=5,
+        width=24
+    ).pack(pady=5)
 
     # Repetir Semanalmente
-    tk.Label(root, text="Repetir semanalmente a cada:").pack(pady=5)
+    tk.Label(root, text="Repetir Semanalmente:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=10)
     dias_var = {}
     dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
-    dias_frame = tk.Frame(root)
+    dias_frame = tk.Frame(root, bg="#F4F4F9")
     dias_frame.pack(pady=5)
     for dia in dias:
         var = tk.BooleanVar()
-        chk = tk.Checkbutton(dias_frame, text=dia, variable=var)
-        chk.pack(side=tk.LEFT, padx=5)
+        chk = tk.Checkbutton(
+            dias_frame, 
+            text=dia, 
+            variable=var,
+            bg="#A8DADC",
+            fg="#1D3557",
+            activebackground="#A8DADC",
+            activeforeground="#1D3557",
+            font=("Segoe UI", 9, "bold"),
+            relief=tk.FLAT,
+            bd=0,
+            padx=3,
+            pady=2,
+            width=8
+        )
+        chk.pack(side=tk.LEFT, padx=2)
         dias_var[dia] = var
 
     # Horário de Início
-    tk.Label(root, text="Horário de Início:").pack(pady=5)
+    tk.Label(root, text="Horário de Início:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=5)
     horarios = [f"{h:02d}:{m:02d}" for h in range(7, 19) for m in (0, 30)]
-    horario_inicio_var = ttk.Combobox(root, values=horarios, width=30)
+    horario_inicio_var = ttk.Combobox(root, values=horarios, width=28)
     horario_inicio_var.set("07:30")
-    horario_inicio_var.pack()
+    horario_inicio_var.pack(pady=5)
 
     # Horário de Fim
-    tk.Label(root, text="Horário de Fim:").pack(pady=5)
-    horario_fim_var = ttk.Combobox(root, values=horarios, width=30)
+    tk.Label(root, text="Horário de Fim:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=5)
+    horario_fim_var = ttk.Combobox(root, values=horarios, width=28)
     horario_fim_var.set("19:00")
-    horario_fim_var.pack()
+    horario_fim_var.pack(pady=5)
 
     # Botão de confirmação
-    tk.Button(root, text="Confirmar Reserva", command=confirmar_reserva).pack(pady=20)
+    tk.Button(
+        root, 
+        text="Confirmar Reserva", 
+        command=confirmar_reserva,
+        bg="#0077B6",
+        fg="#FFFFFF",
+        activebackground="#005792",
+        activeforeground="#FFFFFF",
+        font=("Segoe UI", 11, "bold"),
+        relief=tk.FLAT,
+        bd=0,
+        padx=10,
+        pady=10,
+        width=28
+    ).pack(pady=20)
 
-    # Inicia o loop principal do Tkinter
     root.mainloop()
+
 
 def confirmar_reserva():
     cadeira_id = CADEIRAS_IDS[cadeira_var.get()]
@@ -274,9 +422,30 @@ def confirmar_reserva():
         messagebox.showerror("Erro", "Preencha todos os campos corretamente.")
         return
 
+    # Mensagem de sucesso (sempre aparece primeiro)
+    messagebox.showinfo("Sucesso", "Reservas concluídas! ✅")
+
+    # Lista para armazenar datas que falharam
+    datas_falhadas = []
+
     # Envia uma requisição para cada data
     for data in datas:
-        enviar_reserva(cadeira_id, data, horario_inicio, horario_fim)
+        try:
+            enviar_reserva(cadeira_id, data, horario_inicio, horario_fim)
+        except Exception as e:
+            datas_falhadas.append(data)
+
+    # Exibe todas as datas que falharam em UMA ÚNICA mensagem
+    if datas_falhadas:
+        # Formata as datas para o padrão brasileiro
+        datas_formatadas = [datetime.strptime(data, "%Y-%m-%d").strftime("%d/%m/%Y") for data in datas_falhadas]
+        
+        # Cria a mensagem com todas as datas separadas por vírgula
+        mensagem_erro = ", ".join(datas_formatadas)
+        
+        # Exibe a mensagem final com todas as datas
+        messagebox.showerror("Erro", f"Reservas falharam nas datas:\n{mensagem_erro}")
+
 
 
 
