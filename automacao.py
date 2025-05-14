@@ -377,7 +377,7 @@ def abrir_interface():
     ).pack(pady=5)
 
     # Repetir Semanalmente
-    tk.Label(root, text="Repetir Semanalmente:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=10)
+    tk.Label(root, text="Repetir semanalmente a cada:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 11)).pack(pady=10)
     dias_var = {}
     dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
     dias_frame = tk.Frame(root, bg="#F4F4F9")
