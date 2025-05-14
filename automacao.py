@@ -156,12 +156,9 @@ def carregar_cookies():
         return None
 
 
-def enviar_reserva(cadeira_id, data, horario_inicio, horario_fim):
+def enviar_reserva(cadeira_id, data, horario_inicio, horario_fim, cookies):
     url = f"https://app.wiseoffices.com.br/api/v1/u/reservas/imoveis/3153/recursos/{cadeira_id}"
-    cookies = carregar_cookies()
-    if not cookies:
-        return False  # Falha ao carregar cookies
-
+    
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",
@@ -181,15 +178,19 @@ def enviar_reserva(cadeira_id, data, horario_inicio, horario_fim):
         "agora": False
     }
 
-    response = requests.post(url, json=payload, headers=headers, cookies=cookies)
-
-    if response.status_code == 201:
-        print(f"✅ Reserva criada com sucesso para {data}!")
-        return True
-    else:
-        print(f"❌ Falha ao criar reserva para {data}: {response.status_code}")
-        print(response.text)
+    try:
+        response = requests.post(url, json=payload, headers=headers, cookies=cookies, timeout=10)
+        if response.status_code == 201:
+            print(f"✅ Reserva criada com sucesso para {data}!")
+            return True
+        else:
+            print(f"❌ Falha ao criar reserva para {data}: {response.status_code}")
+            print(response.text)
+            return False
+    except requests.RequestException as e:
+        print(f"❌ Erro de conexão para {data}: {e}")
         return False
+
 
 
 
@@ -423,12 +424,18 @@ def confirmar_reserva():
         messagebox.showerror("Erro", "Preencha todos os campos corretamente.")
         return
 
+    # Carrega os cookies uma vez
+    cookies = carregar_cookies()
+    if not cookies:
+        messagebox.showerror("Erro", "Não foi possível carregar os cookies.")
+        return
+
     # Lista para armazenar datas que falharam
     datas_falhadas = []
 
     # Envia uma requisição para cada data
     for data in datas:
-        if not enviar_reserva(cadeira_id, data, horario_inicio, horario_fim):
+        if not enviar_reserva(cadeira_id, data, horario_inicio, horario_fim, cookies):
             datas_falhadas.append(data)
 
     # Mensagem de sucesso (sempre aparece primeiro)
@@ -442,7 +449,6 @@ def confirmar_reserva():
         )
 
 
-    
 
 
 
