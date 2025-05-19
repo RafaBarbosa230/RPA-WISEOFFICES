@@ -1,0 +1,10 @@
+{
+    "cadeira": "Cabine 2",
+    "data_inicio": "2025-05-19",
+    "dias_semana": [
+        "Terça"
+    ],
+    "intervalo": 1,
+    "horario_inicio": "07:30",
+    "horario_fim": "08:30"
+}
