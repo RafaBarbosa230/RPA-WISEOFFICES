@@ -248,10 +248,7 @@ def enviar_reserva(cookies):
     cadeira_id = CADEIRAS_IDS.get(preferencias["cadeira"])
     horario_inicio = preferencias["horario_inicio"]
     horario_fim = preferencias["horario_fim"]
-
-    # Cria a data para a próxima reserva permitida
-    hoje = datetime.now()
-    data_reserva = hoje + timedelta(days=1)
+    dias_semana_permitidos = preferencias["dias_semana"]
 
     # Tradução dos dias da semana para português
     dias_semana_traduzidos = {
@@ -264,58 +261,59 @@ def enviar_reserva(cookies):
         "Sunday": "Domingo"
     }
 
-    nome_dia_reserva = data_reserva.strftime("%A")
-    dia_reserva_pt = dias_semana_traduzidos.get(nome_dia_reserva, nome_dia_reserva)
+    # Verifica para os próximos 7 dias
+    hoje = datetime.now()
+    for offset in range(7):
+        data_reserva = hoje + timedelta(days=offset)
+        nome_dia_reserva = data_reserva.strftime("%A")
+        dia_reserva_pt = dias_semana_traduzidos.get(nome_dia_reserva, nome_dia_reserva)
 
-    dias_semana_permitidos = preferencias["dias_semana"]
+        # Verifica se o dia é permitido
+        if dia_reserva_pt not in dias_semana_permitidos:
+            continue
 
-    # Verifica se o dia é permitido
-    if dia_reserva_pt not in dias_semana_permitidos:
-        print(f"📅 Amanhã ({dia_reserva_pt}) não é um dos dias selecionados: {dias_semana_permitidos}.")
-        return False
+        # Converte para o formato esperado
+        data_reserva_str = data_reserva.strftime("%Y-%m-%d")
 
-    # Converte para o formato esperado
-    data_reserva_str = data_reserva.strftime("%Y-%m-%d")
-
-    user_id = obter_id_usuario(cookies)
-    if not user_id:
-        print("❌ ID do usuário não encontrado. Não é possível enviar a reserva.")
-        return False
-
-    url = f"https://app.wiseoffices.com.br/api/v1/u/reservas/imoveis/3153/recursos/{cadeira_id}"
-    
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/plain, */*",
-        "Origin": "https://app.wiseoffices.com.br",
-        "Referer": "https://app.wiseoffices.com.br/",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
-    }
-
-    payload = {
-        "idsUsuariosConvidados": [user_id],
-        "visitantes": [],
-        "dataInicio": f"{data_reserva_str} {horario_inicio}",
-        "dataFim": f"{data_reserva_str} {horario_fim}",
-        "descricao": None,
-        "idUsuarioRepresentado": None,
-        "tituloReuniao": None,
-        "agora": False
-    }
-
-    try:
-        print(f"📦 Enviando payload: {json.dumps(payload, indent=4)}")
-        response = requests.post(url, json=payload, headers=headers, cookies=cookies, timeout=10)
-        if response.status_code == 201:
-            print(f"✅ Reserva criada com sucesso para {data_reserva_str}!")
-            return True
-        else:
-            print(f"❌ Falha ao criar reserva para {data_reserva_str}: {response.status_code}")
-            print(response.text)
+        user_id = obter_id_usuario(cookies)
+        if not user_id:
+            print("❌ ID do usuário não encontrado. Não é possível enviar a reserva.")
             return False
-    except requests.RequestException as e:
-        print(f"❌ Erro de conexão para {data_reserva_str}: {e}")
-        return False
+
+        url = f"https://app.wiseoffices.com.br/api/v1/u/reservas/imoveis/3153/recursos/{cadeira_id}"
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/plain, */*",
+            "Origin": "https://app.wiseoffices.com.br",
+            "Referer": "https://app.wiseoffices.com.br/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+        }
+
+        payload = {
+            "idsUsuariosConvidados": [user_id],
+            "visitantes": [],
+            "dataInicio": f"{data_reserva_str} {horario_inicio}",
+            "dataFim": f"{data_reserva_str} {horario_fim}",
+            "descricao": None,
+            "idUsuarioRepresentado": None,
+            "tituloReuniao": None,
+            "agora": False
+        }
+
+        try:
+            print(f"📦 Enviando payload para {data_reserva_str}: {json.dumps(payload, indent=4)}")
+            response = requests.post(url, json=payload, headers=headers, cookies=cookies, timeout=10)
+            if response.status_code == 201:
+                print(f"✅ Reserva criada com sucesso para {data_reserva_str}!")
+            else:
+                print(f"❌ Falha ao criar reserva para {data_reserva_str}: {response.status_code}")
+                print(response.text)
+        except requests.RequestException as e:
+            print(f"❌ Erro de conexão para {data_reserva_str}: {e}")
+
+    return True
+
 
 
 
@@ -340,6 +338,44 @@ def verificar_reserva(cookies=None):
         print("✅ Reserva criada com sucesso!")
     else:
         print("❌ Falha ao criar reserva.")
+
+def agendar_reserva():
+    global cookies
+    preferencias = carregar_preferencias()
+
+    if not preferencias:
+        print("❌ Não foi possível carregar as preferências.")
+        return
+
+    dias_semana_permitidos = preferencias["dias_semana"]
+
+    # Verifica se os cookies ainda são válidos
+    if not verificar_cookies_validos(cookies):
+        print("🔄 Cookies expirados ou inválidos. Fazendo login novamente...")
+        fazer_login()
+        cookies = carregar_cookies()
+
+    # Verifica os próximos 7 dias
+    hoje = datetime.now()
+    for offset in range(7):
+        data_reserva = hoje + timedelta(days=offset)
+        nome_dia_reserva = data_reserva.strftime("%A")
+        dia_reserva_pt = {
+            "Monday": "Segunda",
+            "Tuesday": "Terça",
+            "Wednesday": "Quarta",
+            "Thursday": "Quinta",
+            "Friday": "Sexta",
+            "Saturday": "Sábado",
+            "Sunday": "Domingo"
+        }.get(nome_dia_reserva, nome_dia_reserva)
+
+        # Se for um dos dias permitidos, tenta criar a reserva
+        if dia_reserva_pt in dias_semana_permitidos:
+            print(f"🚀 Tentando criar reserva para {dia_reserva_pt} ({data_reserva.strftime('%Y-%m-%d')})...")
+            verificar_reserva(cookies)
+
+
 
 def criar_interface():
     root = tk.Tk()
@@ -475,22 +511,45 @@ if __name__ == "__main__":
         "08:30",
         "09:00",
         "09:30",
-        "15:39"
+        "16:01"
     ]
 
     # Configura o agendador para verificar as reservas nos horários definidos
     def agendar_reserva():
         global cookies
-        print(f"🔄 Tentando criar reserva para os horários: {horarios_preferidos}")
-        
-        # Verifica se os cookies ainda são válidos ou precisa refazer login
+        preferencias = carregar_preferencias()
+
+        if not preferencias:
+            print("❌ Não foi possível carregar as preferências.")
+            return
+
+        dias_semana_permitidos = preferencias["dias_semana"]
+
+        # Verifica se os cookies ainda são válidos
         if not verificar_cookies_validos(cookies):
             print("🔄 Cookies expirados ou inválidos. Fazendo login novamente...")
             fazer_login()
             cookies = carregar_cookies()
 
-        # Tenta criar a reserva com os cookies atualizados
-        verificar_reserva(cookies)
+        # Verifica os próximos 7 dias
+        hoje = datetime.now()
+        for offset in range(7):
+            data_reserva = hoje + timedelta(days=offset)
+            nome_dia_reserva = data_reserva.strftime("%A")
+            dia_reserva_pt = {
+                "Monday": "Segunda",
+                "Tuesday": "Terça",
+                "Wednesday": "Quarta",
+                "Thursday": "Quinta",
+                "Friday": "Sexta",
+                "Saturday": "Sábado",
+                "Sunday": "Domingo"
+            }.get(nome_dia_reserva, nome_dia_reserva)
+
+            # Se for um dos dias permitidos, tenta criar a reserva
+            if dia_reserva_pt in dias_semana_permitidos:
+                print(f"🚀 Tentando criar reserva para {dia_reserva_pt} ({data_reserva.strftime('%Y-%m-%d')})...")
+                verificar_reserva(cookies)
 
     # Registra as tarefas no agendador
     for horario in horarios_preferidos:
@@ -506,6 +565,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n🛑 Agendador interrompido manualmente. Encerrando...")
         navegador.quit()  # Fecha o navegador corretamente
+
+
 
 
 
