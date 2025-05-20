@@ -1,36 +1,28 @@
-import subprocess
 import sys
+import os
 import json
+import time
+import threading
+import schedule
 import requests
+
+from pathlib import Path
+from datetime import datetime, timedelta
+
+from dotenv import load_dotenv
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from dotenv import load_dotenv
-from pathlib import Path
+from webdriver_manager.chrome import ChromeDriverManager
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import Calendar
-import os
-from datetime import datetime, timedelta
-from PIL import Image, ImageTk
-from datetime import datetime
-import json
-import os
-import tkinter as tk
-from tkinter import ttk, messagebox
-from tkcalendar import Calendar
-from datetime import datetime
-from pathlib import Path
-import schedule
-import time
-from datetime import datetime, timedelta
-import threading
 
-
-
+from PIL import Image, ImageTk 
 
 def pedir_credenciais_custom():
     if getattr(sys, 'frozen', False):
@@ -148,9 +140,6 @@ def fazer_login():
         navegador.quit()
         sys.exit(1)
 
-
-
-
 CADEIRAS_IDS = {
     "Cabine 2": "7638", "Sala de entrevista": "7623", "Sala 2": "7632", "Sala 1": "7630", "Cabine 1": "7637",
     "H2-001": "7602", "H2-002": "7603", "H2-003": "7604", "H2-004": "7605", "H2-005": "7606", "H2-006": "7607", 
@@ -188,7 +177,6 @@ CADEIRAS_IDS = {
     "OS2179": "7123", "OS2180": "71124", "OS2181": "7125", "OS2182": "7126", "OS2183": "7127", "OS2184": "7128",
     "OS2185": "7129", "OS2186": "7139", "OS2187": "7140", "OS2188": "7141"
 }
-
 
 def carregar_cookies():
     try:
@@ -239,7 +227,6 @@ def verificar_cookies_validos(cookies):
         print(f"❌ Erro ao verificar cookies: {e}")
         return False
 
-
 PREFERENCIAS_ARQUIVO = "preferencias.json"
 
 def salvar_preferencias(cadeira, data_inicio, dias_semana, intervalo, horario_inicio, horario_fim):
@@ -252,12 +239,10 @@ def salvar_preferencias(cadeira, data_inicio, dias_semana, intervalo, horario_in
         "horario_fim": horario_fim
     }
     
-    # Salva o JSON com acentos corretamente
     with open(PREFERENCIAS_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(preferencias, f, indent=4, ensure_ascii=False)
     
-    messagebox.showinfo("Sucesso", "Preferências salvas com sucesso!")
-
+    messagebox.showinfo("Sucesso", "Preferências agendadas para reserva!")
 
 def carregar_preferencias():
     try:
@@ -266,7 +251,6 @@ def carregar_preferencias():
     except FileNotFoundError:
         print("❌ Arquivo de preferências não encontrado. Execute a configuração inicial.")
         return None
-
 
 def carregar_dias_reservados():
     caminho = "dias_reservados.json"
@@ -283,21 +267,24 @@ def salvar_dia_reservado(data_str):
         with open(caminho, "w", encoding="utf-8") as f:
             json.dump(dias, f, indent=4, ensure_ascii=False)
 
-
-
 def enviar_reserva(cookies):
-    # Carregar preferências do arquivo
     preferencias = carregar_preferencias()
     if not preferencias:
         print("❌ Não foi possível carregar as preferências.")
         return False
 
-    cadeira_id = CADEIRAS_IDS.get(preferencias["cadeira"])
+    cadeira_nome = preferencias["cadeira"]
+    cadeira_id = CADEIRAS_IDS.get(cadeira_nome)
+
+    if not cadeira_id:
+        print(f"❌ Erro: Cadeira '{cadeira_nome}' não encontrada no dicionário CADEIRAS_IDS.")
+        print("💡 Possivelmente a chave foi renomeada ou o arquivo de preferências está desatualizado.")
+        return False
+
     horario_inicio = preferencias["horario_inicio"]
     horario_fim = preferencias["horario_fim"]
     dias_semana_permitidos = preferencias["dias_semana"]
 
-    # Tradução dos dias da semana para português
     dias_semana_traduzidos = {
         "Monday": "Segunda",
         "Tuesday": "Terça",
@@ -308,10 +295,8 @@ def enviar_reserva(cookies):
         "Sunday": "Domingo"
     }
 
-    # Carrega os dias que já foram reservados com sucesso
     dias_reservados = carregar_dias_reservados()
 
-    # Verifica para os próximos 7 dias
     hoje = datetime.now()
     for offset in range(7):
         data_reserva = hoje + timedelta(days=offset)
@@ -366,20 +351,13 @@ def enviar_reserva(cookies):
             print(f"❌ Erro de conexão para {data_reserva_str}: {e}")
 
     return True
-
-
-
-
-
     
 def verificar_reserva(cookies=None):
-    # Se os cookies não forem passados ou não forem válidos, faz login novamente
     if cookies is None or not verificar_cookies_validos(cookies):
         print("🔄 Cookies expirados ou inválidos. Fazendo login novamente...")
         fazer_login()
         cookies = carregar_cookies()
 
-    # Se ainda não conseguiu carregar os cookies, encerra a tentativa
     if not cookies:
         print("❌ Cookies não encontrados após login. Não é possível continuar.")
         return
@@ -387,7 +365,6 @@ def verificar_reserva(cookies=None):
     print("🚀 Tentando criar reserva para amanhã...")
     sucesso = enviar_reserva(cookies)
 
-    # Feedback visual para o usuário
     if sucesso:
         print("✅ Reserva criada com sucesso!")
     else:
@@ -428,8 +405,6 @@ def agendar_reserva():
         if dia_reserva_pt in dias_semana_permitidos:
             print(f"🚀 Tentando criar reserva para {dia_reserva_pt} ({data_reserva.strftime('%Y-%m-%d')})...")
             verificar_reserva(cookies)
-
-
 
 def criar_interface():
     root = tk.Tk()
@@ -541,14 +516,9 @@ def criar_interface():
 
     root.mainloop()
 
-import threading
 
-import threading
-import schedule
-import time
 
 if __name__ == "__main__":
-    # Faz o login e carrega os cookies antes de abrir a interface
     fazer_login()
     cookies = carregar_cookies()
 
@@ -560,7 +530,6 @@ if __name__ == "__main__":
     interface_thread.daemon = True
     interface_thread.start()
 
-    # Define os horários para verificar as reservas
     horarios_preferidos = [
         "08:30",
         "09:00",
@@ -568,7 +537,6 @@ if __name__ == "__main__":
         "09:55"
     ]
 
-    # Configura o agendador para verificar as reservas nos horários definidos
     def agendar_reserva():
         global cookies
         preferencias = carregar_preferencias()
@@ -579,13 +547,11 @@ if __name__ == "__main__":
 
         dias_semana_permitidos = preferencias["dias_semana"]
 
-        # Verifica se os cookies ainda são válidos
         if not verificar_cookies_validos(cookies):
             print("🔄 Cookies expirados ou inválidos. Fazendo login novamente...")
             fazer_login()
             cookies = carregar_cookies()
 
-        # Verifica os próximos 7 dias
         hoje = datetime.now()
         for offset in range(7):
             data_reserva = hoje + timedelta(days=offset)
