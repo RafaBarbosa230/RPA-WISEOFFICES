@@ -152,11 +152,41 @@ def fazer_login():
 
 
 CADEIRAS_IDS = {
-    "Cabine 2": "7638",
-    "Sala de entrevista": "7623",
-    "Sala 2": "7632",
-    "Sala 1": "7630",
-    "Cabine 1": "7637"
+    "Cabine 2": "7638", "Sala de entrevista": "7623", "Sala 2": "7632", "Sala 1": "7630", "Cabine 1": "7637",
+    "H2-001": "7602", "H2-002": "7603", "H2-003": "7604", "H2-004": "7605", "H2-005": "7606", "H2-006": "7607", 
+    "H2-007": "7608", "H2-008": "7609",
+    "OS001": "7613", "OS002": "7496", "OS003": "7497", "OS004": "7498", "OS005": "7503", "OS006": "7504",
+    "OS007": "7505", "OS008": "7506", "OS009": "7507", "OS010": "7508", "OS011": "7618", "OS012": "6780",
+    "OS013": "6787", "OS014": "6788", "OS015": "6789", "OS016": "6790", "OS017": "6791", "OS018": "6792",
+    "OS019": "6793", "OS020": "7617", "OS2-021": "7614", "OS2-022": "7694", "OS2-023": "6795", "OS2-024": "6796",
+    "OS2-025": "6797", "OS2-026": "6798", "OS2-027": "6799", "OS2-028": "6800", "OS2-029": "6801", "OS2-030": "6802",
+    "OS2-031": "6803", "OS2-032": "7572", "OS2-033": "6804", "OS2-034": "6805", "OS2-035": "6086", "OS2-036": "7573",
+    "OS2-037": "6807", "OS2-038": "6808", "OS2-039": "6809", "OS2-040": "6810", "OS2-041": "6811", "OS2-042": "6812",
+    "OS2-043": "6813", "OS2-044": "6814", "OS2-045": "6815", "OS2-046": "7574", "OS2-047": "6816", "OS2-048": "6817",
+    "OS2-049": "6818", "OS2-050": "6819", "OS2-051": "6820", "OS2-052": "6821", "OS2-053": "6822", "OS2-054": "6823",
+    "OS2-055": "7575", "OS2-056": "6824", "OS2-057": "6825", "OS2-058": "6826", "OS2-059": "6827", "OS2-060": "6828",
+    "OS2-061": "6829", "OS2-062": "6830", "OS2-063": "6831", "OS2-064": "6832", "OS2-065": "7576", "OS2-066": "6833",
+    "OS2-067": "6834", "OS2-068": "6835", "OS2-069": "6836", "OS2-070": "6837", "OS2-071": "6838", "OS2-072": "6839",
+    "OS2-073": "6840", "OS2-074": "6841", "OS2-075": "6842", "OS2-076": "6843", "OS2-077": "6844", "OS2-078": "6845",
+    "OS2-079": "6846", "OS2-080": "6847", "OS2-081": "6848", "OS2-082": "6849", "OS2-083": "6850", "OS2-084": "6851",
+    "OS2-085": "7577", "OS2-086": "6852", "OS2-087": "7615", "OS2-088": "6854", "OS2-089": "7578", "OS2-090": "6855",
+    "OS2-091": "6856", "OS2-092": "7616", "OS2-093": "6857", "OS2-094": "6858",
+    "OS2095": "7470", "OS2096": "7483", "OS2097": "7484", "OS2098": "7486", "OS2099": "7487", "OS2100": "7488",
+    "OS2101": "7489", "OS2102": "7490", "OS2103": "7491", "OS2104": "7492", "OS2105": "7493", "OS2106": "6878",
+    "OS2107": "6879", "OS2108": "6880", "OS2109": "7590", "OS2110": "7591", "OS2111": "7592", "OS2112": "7593",
+    "OS2113": "6986", "OS2114": "6987", "OS2115": "7027", "OS2116": "7028", "OS2117": "7029", "OS2118": "7030",
+    "OS2119": "7031", "OS2120": "7032", "OS2121": "7033", "OS2122": "7034", "OS2123": "7035", "OS2124": "7036",
+    "OS2125": "7037", "OS2126": "7038", "OS2127": "70339", "OS2128": "7040", "OS2129": "7041", "OS2130": "7042",
+    "OS2131": "7043", "OS2132": "7044", "OS2133": "7045", "OS2134": "7046", "OS2135": "7047", "OS2136": "7048",
+    "OS2137": "7049", "OS2138": "7050", "OS2139": "7051", "OS2140": "7052", "OS2141": "7053", "OS2142": "7054",
+    "OS2143": "7055", "OS2144": "7061", "OS2145": "7062", "OS2146": "7063", "OS2147": "7064", "OS2148": "7065",
+    "OS2149": "7073", "OS2150": "7074", "OS2151": "7077", "OS2152": "7078", "OS2153": "7079", "OS2154": "7080",
+    "OS2155": "7081", "OS2156": "7082", "OS2157": "7083", "OS2158": "7084", "OS2159": "7085", "OS2160": "7104",
+    "OS2161": "7105", "OS2162": "7106", "OS2163": "7107", "OS2164": "7108", "OS2165": "7109", "OS2166": "7110",
+    "OS2167": "7111", "OS2168": "7112", "OS2169": "7113", "OS2170": "7114", "OS2171": "7115", "OS2172": "7116",
+    "OS2173": "7117", "OS2174": "7118", "OS2175": "7119", "OS2176": "7120", "OS2177": "721", "OS2178": "7122",
+    "OS2179": "7123", "OS2180": "71124", "OS2181": "7125", "OS2182": "7126", "OS2183": "7127", "OS2184": "7128",
+    "OS2185": "7129", "OS2186": "7139", "OS2187": "7140", "OS2188": "7141"
 }
 
 
@@ -238,6 +268,23 @@ def carregar_preferencias():
         return None
 
 
+def carregar_dias_reservados():
+    caminho = "dias_reservados.json"
+    if os.path.exists(caminho):
+        with open(caminho, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def salvar_dia_reservado(data_str):
+    caminho = "dias_reservados.json"
+    dias = carregar_dias_reservados()
+    if data_str not in dias:
+        dias.append(data_str)
+        with open(caminho, "w", encoding="utf-8") as f:
+            json.dump(dias, f, indent=4, ensure_ascii=False)
+
+
+
 def enviar_reserva(cookies):
     # Carregar preferências do arquivo
     preferencias = carregar_preferencias()
@@ -261,19 +308,24 @@ def enviar_reserva(cookies):
         "Sunday": "Domingo"
     }
 
+    # Carrega os dias que já foram reservados com sucesso
+    dias_reservados = carregar_dias_reservados()
+
     # Verifica para os próximos 7 dias
     hoje = datetime.now()
     for offset in range(7):
         data_reserva = hoje + timedelta(days=offset)
+        data_reserva_str = data_reserva.strftime("%Y-%m-%d")
+
+        if data_reserva_str in dias_reservados:
+            print(f"⚠️ Já foi feita tentativa de reserva com sucesso para {data_reserva_str}. Pulando.")
+            continue
+
         nome_dia_reserva = data_reserva.strftime("%A")
         dia_reserva_pt = dias_semana_traduzidos.get(nome_dia_reserva, nome_dia_reserva)
 
-        # Verifica se o dia é permitido
         if dia_reserva_pt not in dias_semana_permitidos:
             continue
-
-        # Converte para o formato esperado
-        data_reserva_str = data_reserva.strftime("%Y-%m-%d")
 
         user_id = obter_id_usuario(cookies)
         if not user_id:
@@ -305,7 +357,8 @@ def enviar_reserva(cookies):
             print(f"📦 Enviando payload para {data_reserva_str}: {json.dumps(payload, indent=4)}")
             response = requests.post(url, json=payload, headers=headers, cookies=cookies, timeout=10)
             if response.status_code == 201:
-                print(f"✅ Reserva criada com sucesso para {data_reserva_str}!")
+                print(f"✅[STATUS] Reserva realizada para {data_reserva_str}!")
+                salvar_dia_reservado(data_reserva_str)
             else:
                 print(f"❌ Falha ao criar reserva para {data_reserva_str}: {response.status_code}")
                 print(response.text)
@@ -313,6 +366,7 @@ def enviar_reserva(cookies):
             print(f"❌ Erro de conexão para {data_reserva_str}: {e}")
 
     return True
+
 
 
 
@@ -510,8 +564,8 @@ if __name__ == "__main__":
     horarios_preferidos = [
         "08:30",
         "09:00",
-        "09:30",
-        "16:01"
+        "09:54",
+        "09:55"
     ]
 
     # Configura o agendador para verificar as reservas nos horários definidos
