@@ -16,7 +16,18 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
+
+from selenium.webdriver.edge.service import Service as EdgeService
+from selenium.webdriver.edge.options import Options as EdgeOptions
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
+
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from webdriver_manager.firefox import GeckoDriverManager
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -24,27 +35,37 @@ from tkcalendar import Calendar
 
 from PIL import Image, ImageTk 
 
-def pedir_credenciais_custom():
-    if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
-    else:
-        base_path = os.path.dirname(__file__)
-    ico_path = os.path.join(base_path, "favicon.ico")
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
 
+logo_path = os.path.join(base_path, "logo.png")
+
+
+env_path = Path(base_path) / ".env"
+
+load_dotenv(dotenv_path=env_path)
+
+email = os.getenv("WISE_EMAIL")
+senha = os.getenv("WISE_SENHA")
+
+def pedir_credenciais_custom():
     root = tk.Tk()
     root.withdraw()
 
-    
+    icon_img = tk.PhotoImage(file=logo_path)
+
     login_win = tk.Toplevel()
     login_win.title("Login WiseBot")
-    login_win.iconbitmap(ico_path)
+    login_win.iconphoto(False, icon_img)
+
     login_win.geometry("350x220")
     login_win.configure(bg="#F4F4F9")
     login_win.resizable(False, False)
 
     entry_style = {"font": ("Segoe UI", 11), "relief": tk.FLAT, "bg": "#FFFFFF", "fg": "#1D3557", "bd": 1}
 
-    
     tk.Label(login_win, text="Email:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 12, "bold")).pack(pady=(20, 5))
     email_entry = tk.Entry(login_win, width=30, **entry_style)
     email_entry.pack(pady=5, padx=20)
@@ -53,10 +74,9 @@ def pedir_credenciais_custom():
     senha_entry = tk.Entry(login_win, width=30, show="*", **entry_style)
     senha_entry.pack(pady=5, padx=20)
 
-    
     btn_entrar = tk.Button(
-        login_win, 
-        text="Entrar", 
+        login_win,
+        text="Entrar",
         command=lambda: salvar_e_sair(email_entry, senha_entry, login_win, root),
         bg="#0077B6",
         fg="#FFFFFF",
@@ -74,38 +94,75 @@ def pedir_credenciais_custom():
     login_win.mainloop()
 
 
+
+
 def salvar_e_sair(email_entry, senha_entry, login_win, root):
     email = email_entry.get()
     senha = senha_entry.get()
     if not email or not senha:
         messagebox.showerror("Erro", "Preencha ambos os campos.", parent=login_win)
         return
-    with open(".env", "w") as f:
+    with open(env_path, "w") as f:
         f.write(f"WISE_EMAIL={email}\nWISE_SENHA={senha}")
     messagebox.showinfo("Sucesso", "Credenciais salvas!", parent=login_win)
     login_win.destroy()
     root.destroy()
 
-
-
-
-env_path = Path(".env")
-if not env_path.exists() or not os.getenv("WISE_EMAIL") or not os.getenv("WISE_SENHA"):
+if not email or not senha:
     pedir_credenciais_custom()
-
-
-load_dotenv()
-email = os.getenv("WISE_EMAIL")
-senha = os.getenv("WISE_SENHA")
+    load_dotenv(dotenv_path=env_path)
+    email = os.getenv("WISE_EMAIL")
+    senha = os.getenv("WISE_SENHA")
 
 if not email or not senha:
     raise ValueError("Email ou senha não encontrados no arquivo .env")
 
+def navegador_disponivel(caminhos):
+    for caminho in caminhos:
+        if os.path.exists(caminho):
+            return True
+    return False
 
-# Configurações do WebDriver
-options = webdriver.ChromeOptions()
-# options.add_argument("--headless")
-navegador = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+def inicializar_navegador():
+    chrome_caminhos = [
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+    ]
+
+    edge_caminho = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+
+    firefox_caminhos = [
+        r"C:\Program Files\Mozilla Firefox\firefox.exe",
+        r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
+    ]
+
+    if navegador_disponivel(edge_caminho):
+        print("✅ Edge encontrado! Iniciando com EdgeDriver...")
+        options = EdgeOptions()
+        # options.add_argument("--headless") 
+        navegador = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()), options=options)
+        return navegador
+
+    elif os.path.exists(chrome_caminhos):
+        print("✅ Chrome encontrado! Iniciando com ChromeDriver...")
+        options = ChromeOptions()
+        # options.add_argument("--headless")
+        navegador = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+        return navegador
+        
+
+    elif navegador_disponivel(firefox_caminhos):
+        print("✅ Firefox encontrado! Iniciando com GeckoDriver...")
+        options = FirefoxOptions()
+        # options.add_argument("--headless")
+        navegador = webdriver.Firefox(service=FirefoxService(GeckoDriverManager().install()), options=options)
+        return navegador
+
+    else:
+        print("❌ Nenhum navegador compatível encontrado.")
+        sys.exit("Por favor, instale o Google Chrome, Microsoft Edge ou Mozilla Firefox para continuar.")
+
+navegador = inicializar_navegador()
 
 
 def fazer_login():
@@ -139,6 +196,7 @@ def fazer_login():
         print(f"❌ Erro ao fazer login: {e}")
         navegador.quit()
         sys.exit(1)
+
 
 CADEIRAS_IDS = {
     "Cabine 2": "7638", "Sala de entrevista": "7623", "Sala 2": "7632", "Sala 1": "7630", "Cabine 1": "7637",
