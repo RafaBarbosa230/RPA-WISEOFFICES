@@ -41,14 +41,7 @@ else:
     base_path = os.path.dirname(os.path.abspath(__file__))
 
 logo_path = os.path.join(base_path, "logo.png")
-
-
-env_path = Path(base_path) / ".env"
-
-load_dotenv(dotenv_path=env_path)
-
-email = os.getenv("WISE_EMAIL")
-senha = os.getenv("WISE_SENHA")
+config_path = Path(base_path) / "config.json"
 
 def pedir_credenciais_custom():
     root = tk.Tk()
@@ -74,10 +67,22 @@ def pedir_credenciais_custom():
     senha_entry = tk.Entry(login_win, width=30, show="*", **entry_style)
     senha_entry.pack(pady=5, padx=20)
 
+    def salvar_e_sair():
+        email = email_entry.get()
+        senha = senha_entry.get()
+        if not email or not senha:
+            messagebox.showerror("Erro", "Preencha ambos os campos.", parent=login_win)
+            return
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump({"email": email, "senha": senha}, f, indent=4, ensure_ascii=False)
+        messagebox.showinfo("Sucesso", "Credenciais salvas!", parent=login_win)
+        login_win.destroy()
+        root.destroy()
+
     btn_entrar = tk.Button(
         login_win,
         text="Entrar",
-        command=lambda: salvar_e_sair(email_entry, senha_entry, login_win, root),
+        command=salvar_e_sair,
         bg="#0077B6",
         fg="#FFFFFF",
         activebackground="#005792",
@@ -93,35 +98,36 @@ def pedir_credenciais_custom():
 
     login_win.mainloop()
 
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+        return config.get("email"), config.get("senha")
 
+def carregar_credenciais():
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+            return config.get("email"), config.get("senha")
+    else:
+        return pedir_credenciais_custom()
 
-
-def salvar_e_sair(email_entry, senha_entry, login_win, root):
-    email = email_entry.get()
-    senha = senha_entry.get()
-    if not email or not senha:
-        messagebox.showerror("Erro", "Preencha ambos os campos.", parent=login_win)
-        return
-    with open(env_path, "w") as f:
-        f.write(f"WISE_EMAIL={email}\nWISE_SENHA={senha}")
-    messagebox.showinfo("Sucesso", "Credenciais salvas!", parent=login_win)
-    login_win.destroy()
-    root.destroy()
-
-if not email or not senha:
-    pedir_credenciais_custom()
-    load_dotenv(dotenv_path=env_path)
-    email = os.getenv("WISE_EMAIL")
-    senha = os.getenv("WISE_SENHA")
+email, senha = carregar_credenciais()
 
 if not email or not senha:
-    raise ValueError("Email ou senha não encontrados no arquivo .env")
+    raise ValueError("Email ou senha não encontrados no arquivo de configuração.")
 
-def navegador_disponivel(caminhos):
-    for caminho in caminhos:
-        if os.path.exists(caminho):
-            return True
-    return False
+
+def navegador_disponivel(caminho_ou_lista):
+    """
+    Verifica se o navegador existe no caminho ou na lista de caminhos.
+    """
+    if isinstance(caminho_ou_lista, list):
+        for caminho in caminho_ou_lista:
+            if os.path.exists(caminho):
+                return True
+        return False
+    else:
+        return os.path.exists(caminho_ou_lista)
+
 
 def inicializar_navegador():
     chrome_caminhos = [
