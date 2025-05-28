@@ -5,7 +5,7 @@ import time
 import threading
 import schedule
 import requests
-
+import subprocess
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -34,6 +34,41 @@ from tkinter import ttk, messagebox
 from tkcalendar import Calendar
 
 from PIL import Image, ImageTk 
+
+
+import subprocess
+import os
+import sys
+
+def registrar_no_agendador():
+    # Detecta automaticamente se está rodando como .exe ou .py
+    if getattr(sys, 'frozen', False):
+        caminho_script = os.path.abspath(sys.executable)
+    else:
+        caminho_script = os.path.abspath(__file__)
+
+    print(f"📝 Registrando no agendador: {caminho_script}")
+
+    comando = [
+        'schtasks',
+        '/Create',
+        '/SC', 'ONLOGON',
+        '/TN', 'wisebot',
+        '/TR', f'"{caminho_script}"',
+        '/RL', 'HIGHEST',
+        '/F'  # Força sobrescrever se já existir
+    ]
+
+    try:
+        resultado = subprocess.run(comando, capture_output=True, text=True)
+        if resultado.returncode == 0:
+            print("✅ WiseBot registrado no Agendador de Tarefas com sucesso!")
+        else:
+            print(f"❌ Erro ao registrar: {resultado.stderr}")
+    except Exception as e:
+        print(f"❌ Exceção ao tentar registrar no agendador: {e}")
+
+
 
 if getattr(sys, 'frozen', False):
     base_path = sys._MEIPASS
@@ -129,7 +164,7 @@ def navegador_disponivel(caminho_ou_lista):
         return os.path.exists(caminho_ou_lista)
 
 
-def inicializar_navegador():
+def inicializar_navegador(headless=False):
     chrome_caminhos = [
         r"C:\Program Files\Google\Chrome\Application\chrome.exe",
         r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
@@ -145,22 +180,24 @@ def inicializar_navegador():
     if navegador_disponivel(edge_caminho):
         print("✅ Edge encontrado! Iniciando com EdgeDriver...")
         options = EdgeOptions()
-        # options.add_argument("--headless") 
+        if headless:
+            options.add_argument("--headless")
         navegador = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()), options=options)
         return navegador
 
-    elif os.path.exists(chrome_caminhos):
+    elif navegador_disponivel(chrome_caminhos):
         print("✅ Chrome encontrado! Iniciando com ChromeDriver...")
         options = ChromeOptions()
-        # options.add_argument("--headless")
+        if headless:
+            options.add_argument("--headless")
         navegador = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
         return navegador
-        
 
     elif navegador_disponivel(firefox_caminhos):
         print("✅ Firefox encontrado! Iniciando com GeckoDriver...")
         options = FirefoxOptions()
-        # options.add_argument("--headless")
+        if headless:
+            options.add_argument("--headless")
         navegador = webdriver.Firefox(service=FirefoxService(GeckoDriverManager().install()), options=options)
         return navegador
 
@@ -168,10 +205,11 @@ def inicializar_navegador():
         print("❌ Nenhum navegador compatível encontrado.")
         sys.exit("Por favor, instale o Google Chrome, Microsoft Edge ou Mozilla Firefox para continuar.")
 
-navegador = inicializar_navegador()
 
 
-def fazer_login():
+def fazer_login(headless=False):
+    global navegador
+    navegador = inicializar_navegador(headless=headless)
     try:
         navegador.get("https://id.wiseoffices.com.br/realms/wiseoffices/protocol/openid-connect/auth?client_id=wiseoffices&redirect_uri=https%3A%2F%2Fapp.wiseoffices.com.br%2Fdeimos%2Fcallback&response_type=code&scope=openid+profile+email")
         navegador.maximize_window()
@@ -202,6 +240,8 @@ def fazer_login():
         print(f"❌ Erro ao fazer login: {e}")
         navegador.quit()
         sys.exit(1)
+    finally:
+        return
 
 
 CADEIRAS_IDS = {
@@ -291,6 +331,41 @@ def verificar_cookies_validos(cookies):
         print(f"❌ Erro ao verificar cookies: {e}")
         return False
 
+def verificar_reserva_existente(cookies, data_verificar, cadeira_id):
+    url = "https://app.wiseoffices.com.br/api/v1/u/reservas/dias-reservados"
+    headers = {
+        "accept": "*/*",
+        "user-agent": "Mozilla/5.0"
+    }
+    params = {
+        "data": data_verificar,
+        "paraTerceiros": "false"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, cookies=cookies, params=params, timeout=10)
+        response.raise_for_status()
+        reservas = response.json()
+        
+        print(f"🔍 Resposta bruta de dias reservados: {reservas}")
+
+        if isinstance(reservas, list):
+            if data_verificar in reservas:
+                print(f"✅ Reserva já existe para {data_verificar} e foi feita por VOCÊ.")
+                return True
+            else:
+                return False
+        else:
+            print("⚠️ Resposta inesperada ao verificar reservas.")
+            return False
+
+    except requests.RequestException as e:
+        print(f"❌ Erro ao verificar reservas existentes: {e}")
+        return False
+
+
+
+
 PREFERENCIAS_ARQUIVO = "preferencias.json"
 
 def salvar_preferencias(cadeira, data_inicio, dias_semana, intervalo, horario_inicio, horario_fim):
@@ -342,7 +417,6 @@ def enviar_reserva(cookies):
 
     if not cadeira_id:
         print(f"❌ Erro: Cadeira '{cadeira_nome}' não encontrada no dicionário CADEIRAS_IDS.")
-        print("💡 Possivelmente a chave foi renomeada ou o arquivo de preferências está desatualizado.")
         return False
 
     horario_inicio = preferencias["horario_inicio"]
@@ -361,6 +435,11 @@ def enviar_reserva(cookies):
 
     dias_reservados = carregar_dias_reservados()
 
+    meu_id = obter_id_usuario(cookies)
+    if not meu_id:
+        print("❌ Não foi possível obter o ID do usuário.")
+        return False
+
     hoje = datetime.now()
     for offset in range(7):
         data_reserva = hoje + timedelta(days=offset)
@@ -376,13 +455,13 @@ def enviar_reserva(cookies):
         if dia_reserva_pt not in dias_semana_permitidos:
             continue
 
-        user_id = obter_id_usuario(cookies)
-        if not user_id:
-            print("❌ ID do usuário não encontrado. Não é possível enviar a reserva.")
-            return False
+        # 🔴 NOVA VERIFICAÇÃO: já existe reserva feita por VOCÊ?
+        if verificar_reserva_existente(cookies, data_reserva_str, cadeira_id):
+            salvar_dia_reservado(data_reserva_str)  # marca como reservado
+            continue
 
         url = f"https://app.wiseoffices.com.br/api/v1/u/reservas/imoveis/3153/recursos/{cadeira_id}"
-        
+
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json, text/plain, */*",
@@ -392,7 +471,7 @@ def enviar_reserva(cookies):
         }
 
         payload = {
-            "idsUsuariosConvidados": [user_id],
+            "idsUsuariosConvidados": [meu_id],
             "visitantes": [],
             "dataInicio": f"{data_reserva_str} {horario_inicio}",
             "dataFim": f"{data_reserva_str} {horario_fim}",
@@ -415,11 +494,12 @@ def enviar_reserva(cookies):
             print(f"❌ Erro de conexão para {data_reserva_str}: {e}")
 
     return True
+
     
 def verificar_reserva(cookies=None):
     if cookies is None or not verificar_cookies_validos(cookies):
         print("🔄 Cookies expirados ou inválidos. Fazendo login novamente...")
-        fazer_login()
+        fazer_login(headless=True)
         cookies = carregar_cookies()
 
     if not cookies:
@@ -447,7 +527,7 @@ def agendar_reserva():
     # Verifica se os cookies ainda são válidos
     if not verificar_cookies_validos(cookies):
         print("🔄 Cookies expirados ou inválidos. Fazendo login novamente...")
-        fazer_login()
+        fazer_login(headless=True)
         cookies = carregar_cookies()
 
     # Verifica os próximos 7 dias
@@ -476,6 +556,49 @@ def criar_interface():
     root.geometry("400x600")
     root.configure(bg="#F4F4F9")
     root.resizable(False, False)
+
+    # ✅ Correção: manter a referência da imagem
+    icon_img = tk.PhotoImage(file=logo_path)
+    root.iconphoto(False, icon_img)
+    root.icon_img_ref = icon_img  # <- mantém a referência viva!
+
+    # Centralização da janela
+    window_width = 450
+    window_height = 650
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    x = int((screen_width - window_width) / 2)
+    y = int((screen_height - window_height) / 2) - 50
+    root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+    # Carregar a logo e redimensionar
+    logo_img = Image.open(logo_path)
+    logo_img = logo_img.resize((40, 40), Image.LANCZOS)
+    logo_tk = ImageTk.PhotoImage(logo_img)
+
+    # ✅ Mantém referência para evitar garbage collection
+    root.logo_img_ref = logo_tk
+
+    # Frame para o título com logo centralizado
+    titulo_frame = tk.Frame(root, bg="#0077B6")
+    titulo_frame.pack(fill=tk.X, pady=(10, 20))
+
+    titulo_container = tk.Frame(titulo_frame, bg="#0077B6")
+    titulo_container.pack(anchor=tk.CENTER)
+
+    titulo_label = tk.Label(
+        titulo_container,
+        text="WiseBot",
+        bg="#0077B6",
+        fg="#FFFFFF",
+        font=("Segoe UI", 18, "bold")
+    )
+    titulo_label.pack(side=tk.LEFT, padx=5)
+
+    logo_label = tk.Label(titulo_container, image=logo_tk, bg="#0077B6")
+    logo_label.image = logo_tk  # <- mantém referência
+    logo_label.pack(side=tk.LEFT, padx=5)
+
 
     # Cadeiras
     tk.Label(root, text="Cadeira/Sala:", bg="#F4F4F9", fg="#1D3557", font=("Segoe UI", 12)).pack(pady=(15, 5))
@@ -582,78 +705,90 @@ def criar_interface():
 
 
 
+def agendar_reserva():
+    global cookies
+    preferencias = carregar_preferencias()
+
+    if not preferencias:
+        print("❌ Não foi possível carregar as preferências.")
+        return
+
+    dias_semana_permitidos = preferencias["dias_semana"]
+
+    if not verificar_cookies_validos(cookies):
+        print("🔄 Cookies expirados ou inválidos. Fazendo login novamente...")
+        fazer_login(headless=True)
+        cookies = carregar_cookies()
+
+    hoje = datetime.now()
+    for offset in range(7):
+        data_reserva = hoje + timedelta(days=offset)
+        nome_dia_reserva = data_reserva.strftime("%A")
+        dia_reserva_pt = {
+            "Monday": "Segunda",
+            "Tuesday": "Terça",
+            "Wednesday": "Quarta",
+            "Thursday": "Quinta",
+            "Friday": "Sexta",
+            "Saturday": "Sábado",
+            "Sunday": "Domingo"
+        }.get(nome_dia_reserva, nome_dia_reserva)
+
+        if dia_reserva_pt in dias_semana_permitidos:
+            print(f"🚀 Tentando criar reserva para {dia_reserva_pt} ({data_reserva.strftime('%Y-%m-%d')})...")
+            verificar_reserva(cookies)
+
+
+horarios_preferidos = [
+    "08:30",
+    "09:00",
+    "09:30",
+    "14:18"
+]
+
 if __name__ == "__main__":
-    fazer_login()
-    cookies = carregar_cookies()
+    if os.path.exists(PREFERENCIAS_ARQUIVO):
+        print("✅ Preferências encontradas. Pulando configuração e indo direto para o agendamento...")
 
-    # Inicia a interface do Tkinter em uma thread separada
-    def iniciar_interface():
-        criar_interface()
+        cookies = carregar_cookies()
 
-    interface_thread = threading.Thread(target=iniciar_interface)
-    interface_thread.daemon = True
-    interface_thread.start()
+        for horario in horarios_preferidos:
+            print(f"⏰ Agendando reserva para: {horario}")
+            schedule.every().day.at(horario).do(agendar_reserva)
 
-    horarios_preferidos = [
-        "08:30",
-        "09:00",
-        "09:54",
-        "09:55"
-    ]
+        print("🔁 Iniciando loop do agendador...")
+        try:
+            while True:
+                schedule.run_pending()
+                time.sleep(10)
+        except KeyboardInterrupt:
+            print("\n🛑 Agendador interrompido manualmente. Encerrando...")
 
-    def agendar_reserva():
-        global cookies
-        preferencias = carregar_preferencias()
+    else:
+        print("⚠️ Preferências não encontradas. Executando configuração completa...")
 
-        if not preferencias:
-            print("❌ Não foi possível carregar as preferências.")
-            return
+        fazer_login()
+        cookies = carregar_cookies()
 
-        dias_semana_permitidos = preferencias["dias_semana"]
+        def iniciar_interface():
+            criar_interface()
+            registrar_no_agendador()
 
-        if not verificar_cookies_validos(cookies):
-            print("🔄 Cookies expirados ou inválidos. Fazendo login novamente...")
-            fazer_login()
-            cookies = carregar_cookies()
+        interface_thread = threading.Thread(target=iniciar_interface)
+        interface_thread.daemon = True
+        interface_thread.start()
 
-        hoje = datetime.now()
-        for offset in range(7):
-            data_reserva = hoje + timedelta(days=offset)
-            nome_dia_reserva = data_reserva.strftime("%A")
-            dia_reserva_pt = {
-                "Monday": "Segunda",
-                "Tuesday": "Terça",
-                "Wednesday": "Quarta",
-                "Thursday": "Quinta",
-                "Friday": "Sexta",
-                "Saturday": "Sábado",
-                "Sunday": "Domingo"
-            }.get(nome_dia_reserva, nome_dia_reserva)
+        for horario in horarios_preferidos:
+            print(f"⏰ Agendando reserva para: {horario}")
+            schedule.every().day.at(horario).do(agendar_reserva)
 
-            # Se for um dos dias permitidos, tenta criar a reserva
-            if dia_reserva_pt in dias_semana_permitidos:
-                print(f"🚀 Tentando criar reserva para {dia_reserva_pt} ({data_reserva.strftime('%Y-%m-%d')})...")
-                verificar_reserva(cookies)
-
-    # Registra as tarefas no agendador
-    for horario in horarios_preferidos:
-        print(f"⏰ Agendando reserva para: {horario}")
-        schedule.every().day.at(horario).do(agendar_reserva)
-
-    # Loop principal do agendador
-    print("🔁 Iniciando loop do agendador...")
-    try:
-        while True:
-            schedule.run_pending()
-            time.sleep(10)
-    except KeyboardInterrupt:
-        print("\n🛑 Agendador interrompido manualmente. Encerrando...")
-        navegador.quit()  # Fecha o navegador corretamente
-
-
-
-
-
+        print("🔁 Iniciando loop do agendador...")
+        try:
+            while True:
+                schedule.run_pending()
+                time.sleep(10)
+        except KeyboardInterrupt:
+            print("\n🛑 Agendador interrompido manualmente. Encerrando...")
 
 
 
